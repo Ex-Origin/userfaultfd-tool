@@ -138,6 +138,9 @@ struct uffdio_register
 #include <linux/userfaultfd.h>
 #endif
 
+/*
+ * Default padding address, the exception handle will copy following memory into fault_page when page fault exception happened.
+ **/
 #define PAGE_COPY_ADDR (void *)0x1234000
 #define FAULT_PAGE_ADDR (void *)0x5678000
 
@@ -184,9 +187,18 @@ extern void (*init_fault_hook)(void);
 
 /*
  * It can run your funtion with 5 parameters at most in a new thread.
+ * If you don't want the compiler show the warnnings, then use macro RUN_JOB.
  * Note: I only write x64 version.
  **/
-void run_job(void (*job)(void *, ...), ...);
+pthread_t run_job(void (*job)(), ...);
+/*
+ * It can run your funtion with 5 parameters at most in a new thread.
+ * Note: It must have two parameter at least, or some troubles will happen.
+ **/
+#define RUN_JOB(job, ...)                      \
+    {                                          \
+        run_job((void (*)())job, __VA_ARGS__); \
+    }
 
 /*
  * The tool can print memory like hexdump,
@@ -194,5 +206,22 @@ void run_job(void (*job)(void *, ...), ...);
  * mode 1 => BYTE on left, and unsigned long long on right with hex format.
  **/
 void print_hex(unsigned char *addr, int size, int mode);
+
+/*
+ * Log variable with hex format.
+ **/
+#define LOGV(variable)                           \
+    {                                            \
+        printf("" #variable ": 0x%llx (%llu)\n", \
+               (unsigned long long)(variable),   \
+               (unsigned long long)(variable));  \
+    }
+
+
+#define DEFAULT_STATIC_KERNER_BASE 0xffffffff81000000
+/*
+ * In short, it can calculate real offset with static address.
+ **/
+#define REAL_OFFSET(addr) ((addr) - (DEFAULT_STATIC_KERNER_BASE))
 
 #endif

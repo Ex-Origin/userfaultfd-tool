@@ -252,6 +252,7 @@ void print_hex(unsigned char *addr, int size, int mode)
     case 0:
         for (i = 0; i < size;)
         {
+            printf("%03d:  ", i / 8);
             for (ii = 0; i < size && ii < 8; i++, ii++)
             {
                 printf("%02X ", addr[i]);
@@ -268,6 +269,7 @@ void print_hex(unsigned char *addr, int size, int mode)
     case 1:
         for (i = 0; i < size;)
         {
+            printf("%03d:  ", i / 8);
             temp = *(unsigned long long *)(addr + i);
             for (ii = 0; i < size && ii < 8; i++, ii++)
             {
@@ -298,7 +300,7 @@ void *real_run_job(void *p)
     return NULL;
 }
 
-void run_job(void (*job)(void *, ...), ...)
+pthread_t run_job(void (*job)(), ...)
 {
     thread_parameter stack_param, *param;
     pthread_t tid;
@@ -312,8 +314,10 @@ void run_job(void (*job)(void *, ...), ...)
         "mov %%rdx, 8(%%rax)\n"
         "mov %%rcx, 16(%%rax)\n"
         "mov %%r8, 24(%%rax)\n"
-        "mov %%r9, 32(%%rax)\n" ::"m"(stack_param));
-    stack_param.job = job;
+        "mov %%r9, 32(%%rax)\n" 
+        :
+        :"m"(stack_param));
+    stack_param.job = (void (*)(void *, ...))job;
 
     param = calloc(1, sizeof(thread_parameter));
     memcpy(param, &stack_param, sizeof(thread_parameter));
@@ -321,5 +325,6 @@ void run_job(void (*job)(void *, ...), ...)
     pthread_create(&tid, NULL, real_run_job, param);
     /* Let new thread run first. */
     usleep(100 * 1000);
+    return tid;
 }
 #endif
